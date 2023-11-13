@@ -1,0 +1,29 @@
+import tensorflow as tf
+from tensorflow.keras.applications import MobileNetV2
+from tensorflow.keras.layers import Dense, GlobalAveragePooling2D 
+from tensorflow.keras.models import Model
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+
+# Load MobileNetV2 & modify to MobileNetEdge
+base_model = MobileNetV2(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+x = base_model.output
+x = GlobalAveragePooling2D()(x)
+predictions = Dense(1000, activation='softmax')(x)
+model = Model(inputs=base_model.input, outputs=predictions)
+
+# Compile model
+model.compile(loss='categorical_crossentropy', metrics=['accuracy'], optimizer=Adam(lr=0.001))
+
+# Load and preprocess data
+train_path = 'dataset/train'
+valid_path = 'dataset/valid' 
+
+train_gen = ImageDataGenerator(rescale=1/255) # Normalize pixel values
+valid_gen = ImageDataGenerator(rescale=1/255)
+
+train_data = train_gen.flow_from_directory(train_path, target_size=(224, 224)) 
+valid_data = valid_gen.flow_from_directory(valid_path, target_size=(224, 224))
+
+# Train model 
+model.fit(train_data, validation_data=valid_data, epochs=10)
